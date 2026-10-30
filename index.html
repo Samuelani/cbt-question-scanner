@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CBT Question Scanner & Converter</title>
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#2c3e50">
+    <link rel="apple-touch-icon" href="icon-192.png">
+    <style>
+        :root {
+            --primary: #2c3e50;
+            --success: #28a745;
+            --danger: #dc3545;
+            --warning: #ffc107;
+            --bg: #f4f7f6;
+            --card-bg: #ffffff;
+            --text: #333333;
+            --border: #cccccc;
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: Arial, sans-serif; }
+        body { background: var(--bg); color: var(--text); padding: 15px; line-height: 1.5; }
+        header { text-align: center; margin-bottom: 20px; }
+        header h1 { font-size: 22px; color: var(--primary); }
+        header p { font-size: 13px; color: #666; }
+
+        .card { background: var(--card-bg); padding: 20px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); margin-bottom: 20px; }
+        .form-group { margin-bottom: 15px; }
+        label { display: block; margin-bottom: 5px; font-weight: bold; font-size: 14px; }
+        select, textarea, input[type="file"] { width: 100%; padding: 12px; border: 1px solid var(--border); border-radius: 6px; font-size: 15px; background: #fff; }
+        textarea { height: 130px; resize: vertical; font-family: monospace; }
+        
+        .btn { background: var(--primary); color: white; border: none; padding: 12px 20px; border-radius: 6px; cursor: pointer; font-size: 15px; font-weight: bold; display: inline-block; text-align: center; width: 100%; margin-top: 5px; }
+        .btn:hover { opacity: 0.9; }
+        .btn-success { background: var(--success); }
+        .btn-danger { background: var(--danger); padding: 6px 12px; font-size: 13px; width: auto; }
+        .btn-secondary { background: #6c757d; }
+        .btn-warning { background: var(--warning); color: #333; }
+
+        /* Stats & Status Bar */
+        .status-bar { display: flex; justify-content: space-between; align-items: center; background: #e8f4fd; border: 1px solid #bbeeff; padding: 12px 15px; border-radius: 6px; margin-bottom: 20px; font-size: 14px; font-weight: bold; }
+        .badge-alert { background: var(--danger); color: white; padding: 3px 8px; border-radius: 12px; font-size: 12px; }
+        .badge-ok { background: var(--success); color: white; padding: 3px 8px; border-radius: 12px; font-size: 12px; }
+
+        /* Question Card Item */
+        .q-card { background: #fff; border: 1px solid var(--border); border-radius: 6px; padding: 15px; margin-bottom: 15px; position: relative; }
+        .q-card.has-issue { border-color: var(--danger); background: #fdf7f7; }
+        .q-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; font-weight: bold; font-size: 14px; color: #555; }
+        .issue-tag { color: var(--danger); font-size: 12px; font-weight: normal; }
+        
+        .q-card textarea { height: 70px; margin-bottom: 10px; }
+        .opt-row { display: flex; gap: 8px; align-items: center; margin-bottom: 8px; }
+        .opt-row span { font-weight: bold; width: 20px; text-align: center; }
+        .opt-row input { flex: 1; padding: 8px; border: 1px solid var(--border); border-radius: 4px; font-size: 14px; }
+        
+        .ans-row { display: flex; align-items: center; gap: 10px; margin-top: 10px; padding-top: 10px; border-top: 1px solid #eee; }
+        .ans-row select { width: 120px; padding: 8px; font-weight: bold; }
+
+        .card-actions { display: flex; gap: 5px; align-items: center; }
+        .btn-sm { padding: 4px 8px; font-size: 12px; width: auto; margin: 0; }
+
+        /* Inline Message Area */
+        .inline-msg { background: #fff3cd; border: 1px solid #ffeeba; color: #856404; padding: 10px 15px; border-radius: 6px; margin-bottom: 15px; font-size: 13px; display: none; white-space: pre-wrap; }
+        .sample-box { background: #f8f9fa; border-left: 4px solid var(--primary); padding: 10px; font-size: 12px; font-family: monospace; white-space: pre-wrap; margin-top: 10px; max-height: 100px; overflow-y: auto; }
+    </style>
+</head>
+<body>
+
+<header>
+    <h1>CBT Question Scanner</h1>
+    <p>Offline PWA Tool • Convert & Sync to XAMPP</p>
+</header>
+
+<div class="card">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+        <h3 style="margin:0;">1. Exam Settings</h3>
+        <button class="btn btn-warning btn-sm" id="startNewPaperBtn">Start New Paper</button>
+    </div>
+    <div class="form-group">
+        <label for="configClass">Class:</label>
+        <select id="configClass">
+            <option value="">-- Select class --</option>
+        </select>
+    </div>
+    <div class="form-group" style="margin-bottom:0;">
+        <label for="configSubject">Subject:</label>
+        <select id="configSubject">
+            <option value="">-- Select subject --</option>
+        </select>
+    </div>
+</div>
+
+<div class="card">
+    <h3>2. Scan Paper (Camera / Image)</h3>
+    <p style="font-size: 13px; color: #666; margin-bottom: 10px;">Snap a photo or upload an image file:</p>
+    <div style="display: flex; gap: 10px; margin-bottom: 15px;">
+        <label class="btn btn-secondary" style="flex:1; text-align:center; cursor:pointer; margin:0;">
+            📷 Snap Photo
+            <input type="file" id="cameraInput" accept="image/*" capture="environment" style="display:none;">
+        </label>
+        <label class="btn btn-secondary" style="flex:1; text-align:center; cursor:pointer; margin:0;">
+            📁 Choose Image
+            <input type="file" id="imageInput" accept="image/*" style="display:none;">
+        </label>
+    </div>
+    <canvas id="preprocessCanvas" style="display:none;"></canvas>
+    <div id="ocrProgressBox" style="display:none; background: #e8f4fd; border: 1px solid #bbeeff; padding: 12px; border-radius: 6px; text-align: center; font-size: 14px;">
+        <span id="ocrStatusText">Processing image...</span>
+    </div>
+</div>
+
+<div class="card">
+    <h3>3. Upload Document (DOCX / PDF)</h3>
+    <div style="display: flex; gap: 10px; margin-top: 10px;">
+        <label class="btn btn-secondary" style="flex:1; text-align:center; cursor:pointer; margin:0;">
+            📄 Upload DOCX
+            <input type="file" id="docxInput" accept=".docx" style="display:none;">
+        </label>
+        <label class="btn btn-secondary" style="flex:1; text-align:center; cursor:pointer; margin:0;">
+            📑 Upload PDF
+            <input type="file" id="pdfInput" accept=".pdf" style="display:none;">
+        </label>
+    </div>
+</div>
+
+<div class="card">
+    <h3>4. Paste Question Text</h3>
+    <p style="font-size: 13px; color: #666; margin-bottom: 8px;">Paste text directly from notes or documents:</p>
+    <div class="inline-msg" id="inlineMsg"></div>
+    <textarea id="pasteInput" placeholder="1. What is the capital of Nigeria?&#10;A. Lagos&#10;B. Abuja&#10;C. Ibadan&#10;D. Port Harcourt&#10;Answer: B"></textarea>
+    
+    <button class="btn" id="parseBtn">Parse Text into Questions</button>
+
+    <div style="margin-top: 15px;">
+        <button class="btn btn-secondary" id="loadSampleBtn" style="font-size: 13px; padding: 8px;">Load Sample Question Paper</button>
+        <div class="sample-box" id="sampleDisplay" style="display:none;">1. What is the capital of Nigeria?
+A. Lagos
+B. Abuja
+C. Ibadan
+D. Port Harcourt
+Answer: B
+
+2. Which of these is a mammal?
+A. Tilapia
+B. Eagle
+C. Goat
+D. Toad
+Answer: C</div>
+    </div>
+</div>
+
+<div id="reviewSection" style="display:none;">
+    <div class="status-bar" id="statusBar">
+        <span>Questions: <span id="statTotal">0</span></span>
+        <span id="statStatusBadge" class="badge-ok">All Valid</span>
+    </div>
+
+    <div id="questionsContainer"></div>
+
+    <button class="btn btn-secondary" id="addQuestionBtn" style="margin-bottom: 20px;">+ Add Question Manually</button>
+
+    <div class="card" style="background: #e9ecef; text-align: center;">
+        <button class="btn btn-success" id="exportBtn" disabled>Download JSON Export File</button>
+        <p id="exportBlockNote" style="font-size: 12px; color: var(--danger); margin-top: 8px;"></p>
+    </div>
+</div>
+
+<div class="card">
+    <h3>Reload Previous Work</h3>
+    <p style="font-size: 13px; color: #666; margin-bottom: 10px;">Import a previously exported JSON file to continue editing:</p>
+    <input type="file" id="importJsonFile" accept=".json">
+</div>
+
+<script src="vendor/tesseract/tesseract.min.js"></script>
+<script src="vendor/mammoth/mammoth.min.js"></script>
+<script src="vendor/pdfjs/pdf.min.js"></script>
+<script>
+    pdfjsLib.GlobalWorkerOptions.workerSrc = 'vendor/pdfjs/pdf.worker.min.js';
+</script>
+<script src="parser.js"></script>
+<script src="app.js"></script>
+<script>
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('./sw.js').catch(err => console.warn('SW failed', err));
+  });
+}
+</script>
+</body>
+</html>
